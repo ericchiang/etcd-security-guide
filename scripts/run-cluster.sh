@@ -15,15 +15,15 @@ etcd \
     --initial-advertise-peer-urls=https://etcd-1.local:12380 \
     --initial-cluster='infra1=https://etcd-1.local:12380,infra2=https://etcd-2.local:22380,infra3=https://etcd-3.local:32380' \
     --initial-cluster-state=new \
-    --cert-file=tls/assets/member-1-server.crt \
-    --key-file=tls/assets/member-1-server.key \
-    --peer-cert-file=tls/assets/member-1-peer.crt \
-    --peer-key-file=tls/assets/member-1-peer.key \
+    --cert-file=tls/assets/member-1-server.pem \
+    --key-file=tls/assets/member-1-server-key.pem \
+    --peer-cert-file=tls/assets/member-1-peer.pem \
+    --peer-key-file=tls/assets/member-1-peer-key.pem \
     --client-cert-auth=true \
-    --trusted-ca-file=tls/assets/ca.crt \
+    --trusted-ca-file=tls/assets/ca.pem \
     --peer-cert-allowed-cn=etcd-member \
     --peer-client-cert-auth=true \
-    --peer-trusted-ca-file=tls/assets/ca.crt \
+    --peer-trusted-ca-file=tls/assets/ca.pem \
     --log-output=stderr > logs/etcd1.stdout 2> logs/etcd1.stderr &
 pids[0]=$!
 echo "etcd 1 running: PID ${pids[0]}"
@@ -37,15 +37,15 @@ etcd \
     --initial-advertise-peer-urls=https://etcd-2.local:22380 \
     --initial-cluster='infra1=https://etcd-1.local:12380,infra2=https://etcd-2.local:22380,infra3=https://etcd-3.local:32380' \
     --initial-cluster-state=new \
-    --cert-file=tls/assets/member-2-server.crt \
-    --key-file=tls/assets/member-2-server.key \
-    --peer-cert-file=tls/assets/member-2-peer.crt \
-    --peer-key-file=tls/assets/member-2-peer.key \
+    --cert-file=tls/assets/member-2-server.pem \
+    --key-file=tls/assets/member-2-server-key.pem \
+    --peer-cert-file=tls/assets/member-2-peer.pem \
+    --peer-key-file=tls/assets/member-2-peer-key.pem \
     --client-cert-auth=true \
-    --trusted-ca-file=tls/assets/ca.crt \
+    --trusted-ca-file=tls/assets/ca.pem \
     --peer-cert-allowed-cn=etcd-member \
     --peer-client-cert-auth=true \
-    --peer-trusted-ca-file=tls/assets/ca.crt \
+    --peer-trusted-ca-file=tls/assets/ca.pem \
     --log-output stderr > logs/etcd2.stdout 2> logs/etcd2.stderr &
 pids[1]=$!
 echo "etcd 2 running: PID ${pids[1]}"
@@ -59,15 +59,15 @@ etcd \
     --initial-advertise-peer-urls=https://etcd-3.local:32380 \
     --initial-cluster='infra1=https://etcd-1.local:12380,infra2=https://etcd-2.local:22380,infra3=https://etcd-3.local:32380' \
     --initial-cluster-state=new \
-    --cert-file=tls/assets/member-3-server.crt \
-    --key-file=tls/assets/member-3-server.key \
-    --peer-cert-file=tls/assets/member-3-peer.crt \
-    --peer-key-file=tls/assets/member-3-peer.key \
+    --cert-file=tls/assets/member-3-server.pem \
+    --key-file=tls/assets/member-3-server-key.pem \
+    --peer-cert-file=tls/assets/member-3-peer.pem \
+    --peer-key-file=tls/assets/member-3-peer-key.pem \
     --client-cert-auth=true \
-    --trusted-ca-file=tls/assets/ca.crt \
+    --trusted-ca-file=tls/assets/ca.pem \
     --peer-cert-allowed-cn=etcd-member \
     --peer-client-cert-auth=true \
-    --peer-trusted-ca-file=tls/assets/ca.crt \
+    --peer-trusted-ca-file=tls/assets/ca.pem \
     --log-output stderr > logs/etcd3.stdout 2> logs/etcd3.stderr &
 pids[2]=$!
 echo "etcd 3 running: PID ${pids[2]}"

@@ -6,7 +6,7 @@ etcd's default options, and many tutorials, don't use TLS or any form of authent
 
 This document provides examples of how to provision TLS assets for an etcd cluster, and acts as a reference for which flags to enable to correctly secure client and peer traffic. At some point this content will be contributed to the [upstream etcd security guide][etcd-security].
 
-This document requires the [latest release of etcd][etcd-releases], [CloudFlare's cfssl][cfssl-install], and [jq][jq-install] to run the examples.
+This document requires the [latest release of etcd][etcd-releases] and CloudFlare's [cfssl and cfssljson][cfssl-install] tools to run the examples.
 
 ## Running an etcd cluster using TLS
 
@@ -18,45 +18,103 @@ For this demo add the following entries to `/etc/hosts`:
 127.0.0.1   etcd-1.local etcd-2.local etcd-3.local
 ```
 
-The [`gen-certs.sh`](./scripts/gen-certs.sh) script uses `cfssl` to generate the initial TLS assets for a set of DNS names.
+First, initialize the `cfssl` profiles and config files. These control the common name of the generate certificates, the allowed usages, and expiry:
 
+```bash
+mkdir -p tls/profiles
+echo '{
+  "signing": {
+    "default": {
+      "expiry": "43800h"
+    },
+    "profiles": {
+      "server": {
+        "expiry": "43800h",
+        "usages": ["signing", "key encipherment", "server auth"]
+      },
+      "client": {
+        "expiry": "43800h",
+        "usages": ["signing", "key encipherment", "client auth"]
+      },
+      "peer": {
+        "expiry": "43800h",
+        "usages": ["signing", "key encipherment", "server auth", "client auth"]
+      }
+    }
+  }
+}' > tls/profiles/config.json
+echo '{"CN":"etcd-ca","key":{"algo":"ecdsa","size":256}}' > tls/profiles/ca.json
+echo '{"CN":"root","key":{"algo":"ecdsa","size":256}}' > tls/profiles/client.json
+echo '{"CN":"etcd-member","key":{"algo":"ecdsa","size":256}}' > tls/profiles/peer.json
+echo '{"CN":"etcd-server","key":{"algo":"ecdsa","size":256}}' > tls/profiles/server.json
 ```
-$ HOSTS="etcd-1.local,etcd-2.local,etcd-3.local" ./scripts/gen-certs.sh
+
+Next, generate a certifiate authority, a client cert, and serving and peer certs for each member:
+
+```bash
+mkdir -p tls/assets
+
+cfssl gencert -initca tls/profiles/ca.json | cfssljson -bare tls/assets/ca
+
+# Generate a client cert
+cfssl gencert -ca=tls/assets/ca.pem -ca-key=tls/assets/ca-key.pem \
+    -config=tls/profiles/config.json -profile=client \
+    tls/profiles/client.json | cfssljson -bare tls/assets/client
+
+# Generate a serving and peer certs for each etcd member
+cfssl gencert -ca=tls/assets/ca.pem -ca-key=tls/assets/ca-key.pem \
+    -config=tls/profiles/config.json -profile=peer -hostname="etcd-1.local" \
+    tls/profiles/peer.json | cfssljson -bare tls/assets/member-1-peer
+cfssl gencert -ca=tls/assets/ca.pem -ca-key=tls/assets/ca-key.pem \
+    -config=tls/profiles/config.json -profile=server -hostname="etcd-1.local" \
+    tls/profiles/server.json | cfssljson -bare tls/assets/member-1-server
+
+cfssl gencert -ca=tls/assets/ca.pem -ca-key=tls/assets/ca-key.pem \
+    -config=tls/profiles/config.json -profile=peer -hostname="etcd-2.local" \
+    tls/profiles/peer.json | cfssljson -bare tls/assets/member-2-peer
+cfssl gencert -ca=tls/assets/ca.pem -ca-key=tls/assets/ca-key.pem \
+    -config=tls/profiles/config.json -profile=server -hostname="etcd-2.local" \
+    tls/profiles/server.json | cfssljson -bare tls/assets/member-2-server
+
+cfssl gencert -ca=tls/assets/ca.pem -ca-key=tls/assets/ca-key.pem \
+    -config=tls/profiles/config.json -profile=peer -hostname="etcd-3.local" \
+    tls/profiles/peer.json | cfssljson -bare tls/assets/member-3-peer
+cfssl gencert -ca=tls/assets/ca.pem -ca-key=tls/assets/ca-key.pem \
+    -config=tls/profiles/config.json -profile=server -hostname="etcd-3.local" \
+    tls/profiles/server.json | cfssljson -bare tls/assets/member-3-server
+
+# Remove generated CSRs
+rm tls/assets/*.csr
+```
+
+These commands will create the following directory structure:
+
+```terminal
 $ tree tls/
 tls/
 ├── assets
-│   ├── admin-client.crt
-│   ├── admin-client.key
-│   ├── admin-client.txt
-│   ├── ca.crt
-│   ├── ca.key
-│   ├── ca.txt
-│   ├── member-1-peer.crt
-│   ├── member-1-peer.key
-│   ├── member-1-peer.txt
-│   ├── member-1-server.crt
-│   ├── member-1-server.key
-│   ├── member-1-server.txt
-│   ├── member-2-peer.crt
-│   ├── member-2-peer.key
-│   ├── member-2-peer.txt
-│   ├── member-2-server.crt
-│   ├── member-2-server.key
-│   ├── member-2-server.txt
-│   ├── member-3-peer.crt
-│   ├── member-3-peer.key
-│   ├── member-3-peer.txt
-│   ├── member-3-server.crt
-│   ├── member-3-server.key
-│   └── member-3-server.txt
+│   ├── ca-key.pem
+│   ├── ca.pem
+│   ├── member-1-peer-key.pem
+│   ├── member-1-peer.pem
+│   ├── member-1-server-key.pem
+│   ├── member-1-server.pem
+│   ├── member-2-peer-key.pem
+│   ├── member-2-peer.pem
+│   ├── member-2-server-key.pem
+│   ├── member-2-server.pem
+│   ├── member-3-peer-key.pem
+│   ├── member-3-peer.pem
+│   ├── member-3-server-key.pem
+│   └── member-3-server.pem
 └── profiles
-    ├── ca-config.json
-    ├── ca-csr.json
-    ├── client-csr.json
-    ├── peer-csr.json
-    └── server-csr.json
+    ├── ca.json
+    ├── client.json
+    ├── config.json
+    ├── peer.json
+    └── server.json
 
-2 directories, 29 files
+2 directories, 19 files
 ```
 
 The [`run-cluster.sh`](./scripts/run-cluster.sh) script runs a 3 member etcd cluster locally. It configures each to use the generated TLS assets and enables the correct set of flags to enforce authentication:
@@ -79,9 +137,9 @@ Configure `etcdctl` with the admin client certificate:
 ```
 export ETCDCTL_API=3
 export ETCDCTL_ENDPOINTS='https://etcd-1.local:12379,https://etcd-2.local:22379,https://etcd-3.local:32379'
-export ETCDCTL_CACERT=$PWD/tls/assets/ca.crt
-export ETCDCTL_CERT=$PWD/tls/assets/admin-client.crt
-export ETCDCTL_KEY=$PWD/tls/assets/admin-client.key
+export ETCDCTL_CACERT=$PWD/tls/assets/ca.pem
+export ETCDCTL_CERT=$PWD/tls/assets/client.pem
+export ETCDCTL_KEY=$PWD/tls/assets/client-key.pem
 ```
 
 If the scripts work `etcdctl` should be able to interact with the cluster:
@@ -98,4 +156,3 @@ $ etcdctl member list
 [etcd-releases]: https://github.com/coreos/etcd/releases
 [etcd-security]: https://coreos.com/etcd/docs/latest/op-guide/security.html
 [etcd-security-blog-post]: https://elweb.co/the-security-footgun-in-etcd/
-[jq-install]: https://stedolan.github.io/jq/
