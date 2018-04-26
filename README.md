@@ -18,7 +18,7 @@ For this demo add the following entries to `/etc/hosts`:
 127.0.0.1   etcd-1.local etcd-2.local etcd-3.local
 ```
 
-The `gen-certs.sh` script uses `cfssl` to generate the initial TLS assets for a set of DNS names.
+The [`gen-certs.sh`](./scripts/gen-certs.sh) script uses `cfssl` to generate the initial TLS assets for a set of DNS names.
 
 ```
 $ HOSTS="etcd-1.local,etcd-2.local,etcd-3.local" ./scripts/gen-certs.sh
@@ -59,7 +59,7 @@ tls/
 2 directories, 29 files
 ```
 
-The `run-cluster.sh` script runs a 3 member etcd cluster locally. It configures each to use the generated TLS assets and enables the correct set of flags to enforce authentication:
+The [`run-cluster.sh`](./scripts/run-cluster.sh) script runs a 3 member etcd cluster locally. It configures each to use the generated TLS assets and enables the correct set of flags to enforce authentication:
 
 ```
 $ ./scripts/run-cluster.sh
