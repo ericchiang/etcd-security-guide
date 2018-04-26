@@ -8,7 +8,7 @@ This document provides examples of how to provision TLS assets for an etcd clust
 
 This document requires the [latest release of etcd][etcd-releases] and CloudFlare's [cfssl and cfssljson][cfssl-install] tools to run the examples.
 
-## Running an etcd cluster using TLS
+## Generating TLS assets
 
 etcd instances require 2 sets of TLS certificates: one cert to serve client requests and a second for the peer endpoint used for communication between members. The peer cert doubles as a serving cert and client cert for traffic between the peers.
 
@@ -115,6 +115,27 @@ tls/
     └── server.json
 
 2 directories, 19 files
+```
+
+## Running a secured cluster
+
+To run etcd using HTTPS provide endpoints that use a `https://` scheme, specifiy cert and key flags, and enable client auth. The following flags are used to load TLS assets for the client endpoint and enforce TLS client auth:
+
+```
+--cert-file=tls/assets/member-1-server.pem
+--key-file=tls/assets/member-1-server-key.pem
+--client-cert-auth=true
+--trusted-ca-file=tls/assets/ca.pem
+```
+
+The following flags are used to load TLS assets for the peer endpoint (reminder that peer certs double as serving and client certs) and restrict TLS client auth to other etcd members:
+
+```
+--peer-cert-file=tls/assets/member-1-peer.pem
+--peer-key-file=tls/assets/member-1-peer-key.pem
+--peer-cert-allowed-cn=etcd-member
+--peer-client-cert-auth=true
+--peer-trusted-ca-file=tls/assets/ca.pem
 ```
 
 The [`run-cluster.sh`](./scripts/run-cluster.sh) script runs a 3 member etcd cluster locally. It configures each to use the generated TLS assets and enables the correct set of flags to enforce authentication:
