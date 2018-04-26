@@ -76,10 +76,10 @@ function handle_term() {
   echo ""
   echo "ctrl+c detected, stopping etcd members"
   for pid in ${pids[*]}; do
-    echo "PID $pid: stopped"
+    echo "PID $pid: stopping"
     kill -TERM "$pid" 2>/dev/null || true
     wait $pid 2>/dev/null || true
-    echo "PID $pid: terminated"
+    echo "PID $pid: stopped"
   done
 }
 
